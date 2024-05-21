@@ -13,19 +13,20 @@ class AuthController extends BaseController
     use ResponseTrait;
 
     private $jwtService;
+    private $user;
 
     public function __construct()
     {
         $this->jwtService = new JwtService();
+        $this->user = new User();
     }
 
     public function store()
     {
-        $userModel = new User();
         $data = $this->request->getJSON();
 
         try {
-            $userFound = $userModel->where('email', $data->email)->first();
+            $userFound = $this->user->where('email', $data->email)->first();
 
             if (!$userFound) {
                 return $this->response->setStatusCode(ResponseInterface::HTTP_UNAUTHORIZED)->setJSON(['message' => 'User not found']);

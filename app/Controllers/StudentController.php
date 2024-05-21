@@ -10,16 +10,36 @@ use CodeIgniter\HTTP\Response;
 
 class StudentController extends BaseController
 {
+    private $validation;
+    private $student;
+
+    public function __construct()
+    {
+        $this->student = new Student();
+        $this->validation = \Config\Services::validation();
+    }
+
     public function create()
     {
-        $studentModel = new Student();
-        $data = $this->request->getJSON();
+        if (!$this->validate($this->student->getValidationRules(), $this->student->getValidationMessages())) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON($this->validation->getErrors());
+        }
+
+        $data = [
+            'name' => $this->request->getVar('name'),
+            'email' => $this->request->getVar('email'),
+            'phone' => $this->request->getVar('phone'),
+            'address' => $this->request->getVar('address'),
+            'photo' => $this->request->getFile('photo')
+        ];
 
         try {
-            $studentModel->insert($data);
-            $id = $studentModel->getInsertID();
-            $student = $studentModel->find($id);
-            return $this->response->setStatusCode(ResponseInterface::HTTP_CREATED)->setJSON($student);
+            if ($data["photo"]) {
+                $data["photo"] = $this->savePhoto($data["photo"]);
+            }
+            $this->student->insert($data);
+            $this->student = $this->student->find($this->student->getInsertID());
+            return $this->response->setStatusCode(ResponseInterface::HTTP_CREATED)->setJSON($this->student);
         } catch (\Exception $e) {
             return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => $e->getMessage()]);
         }
@@ -27,10 +47,9 @@ class StudentController extends BaseController
 
     public function show($id)
     {
-        $studentModel = new Student();
         try {
-            $student = $studentModel->find($id);
-            return $this->response->setStatusCode(ResponseInterface::HTTP_OK)->setJSON($student);
+            $this->student = $this->student->find($id);
+            return $this->response->setStatusCode(ResponseInterface::HTTP_OK)->setJSON($this->student);
         } catch (\Exception $e) {
             return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => $e->getMessage()]);
         }
@@ -38,10 +57,9 @@ class StudentController extends BaseController
 
     public function showAll()
     {
-        $studentModel = new Student();
         try {
-            $students = $studentModel->findAll();
-            return $this->response->setJSON($students);
+            $this->student = $this->student->findAll();
+            return $this->response->setJSON($this->student);
         } catch (\Exception $e) {
             return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => $e->getMessage()]);
         }
@@ -49,10 +67,10 @@ class StudentController extends BaseController
 
     public function delete($id)
     {
-        $studentModel = new Student();
+        $this->student = new Student();
         try {
-            $studentModel->delete($id);
-            if($studentModel->db->affectedRows() === 0) {
+            $this->student->delete($id);
+            if ($this->student->db->affectedRows() === 0) {
                 return $this->response->setStatusCode(Response::HTTP_NOT_FOUND)->setJSON(['message' => 'Student not found']);
             }
 
@@ -64,17 +82,49 @@ class StudentController extends BaseController
 
     public function update($id)
     {
-        $studentModel = new Student();
-        $data = $this->request->getJSON();
+        $data = [
+            'name' => $this->request->getVar('name'),
+            'email' => $this->request->getVar('email'),
+            'phone' => $this->request->getVar('phone'),
+            'address' => $this->request->getVar('address'),
+            'photo' => $this->request->getFile('photo')
+        ];
 
         try {
-            $studentModel->update($id, $data);
-            if(!$student = $studentModel->find($id)){
-                return $this->response->setStatusCode(Response::HTTP_NOT_FOUND)->setJSON(['message' => 'Student not found']);
+            $studentData = $this->student->find($id);
+
+            if (!$studentData) {
+                return $this->response->setStatusCode(ResponseInterface::HTTP_NOT_FOUND)->setJSON(['message' => 'Student not found']);
             }
-            return $this->response->setStatusCode(ResponseInterface::HTTP_OK)->setJSON($student);
+
+            if (!empty($studentData['photo']) && $data['photo']) {
+                if (!$this->deletePhoto($studentData['photo'])) {
+                    return $this->response->setStatusCode(ResponseInterface::HTTP_NOT_FOUND)->setJSON(['message' => 'Failed to delete photo']);
+                }
+                $data['photo'] = $this->savePhoto($data['photo']);
+            }
+
+            if(!$this->student->update($id, $data)){
+                return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => 'Failed to update student']);
+            }
+
+            $updatedStudent = $this->student->find($id);
+
+            return $this->response->setStatusCode(ResponseInterface::HTTP_OK)->setJSON($updatedStudent);
         } catch (\Exception $e) {
             return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => $e->getMessage()]);
         }
+    }
+
+    public function savePhoto($photo)
+    {
+        $photoName = $photo->getRandomName();
+        $photo->move(WRITEPATH . 'uploads', $photoName);
+        return $photoName;
+    }
+
+    public function deletePhoto($photo)
+    {
+        return unlink(WRITEPATH . 'uploads/' . $photo);
     }
 }
