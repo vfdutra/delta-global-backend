@@ -42,7 +42,7 @@ class StudentController extends BaseController
             $this->student = $this->student->find($this->student->getInsertID());
             return $this->response->setStatusCode(ResponseInterface::HTTP_CREATED)->setJSON($this->student);
         } catch (\Exception $e) {
-            return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => $e->getMessage()]);
+            return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)->setJSON(['message' => 'Internal server error' , 'error' =>$e->getMessage()]);
         }
     }
 
@@ -52,7 +52,7 @@ class StudentController extends BaseController
             $this->student = $this->student->find($id);
             return $this->response->setStatusCode(ResponseInterface::HTTP_OK)->setJSON($this->student);
         } catch (\Exception $e) {
-            return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => $e->getMessage()]);
+            return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)->setJSON(['message' => 'Internal server error' , 'error' =>$e->getMessage()]);
         }
     }
 
@@ -62,7 +62,7 @@ class StudentController extends BaseController
             $this->student = $this->student->findAll();
             return $this->response->setJSON($this->student);
         } catch (\Exception $e) {
-            return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => $e->getMessage()]);
+            return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)->setJSON(['message' => 'Internal server error' , 'error' =>$e->getMessage()]);
         }
     }
 
@@ -76,7 +76,7 @@ class StudentController extends BaseController
 
             return $this->response->setStatusCode(Response::HTTP_OK)->setJSON(['message' => 'Student deleted successfully']);
         } catch (\Exception $e) {
-            return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => $e->getMessage()]);
+            return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)->setJSON(['message' => 'Internal server error' , 'error' =>$e->getMessage()]);
         }
     }
 
@@ -120,7 +120,7 @@ class StudentController extends BaseController
 
             return $this->response->setStatusCode(ResponseInterface::HTTP_OK)->setJSON($updatedStudent);
         } catch (\Exception $e) {
-            return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => $e->getMessage()]);
+            return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)->setJSON(['message' => 'Internal server error' , 'error' =>$e->getMessage()]);
         }
     }
 

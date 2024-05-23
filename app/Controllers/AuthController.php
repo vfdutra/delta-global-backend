@@ -41,7 +41,7 @@ class AuthController extends BaseController
             return $this->response->setStatusCode(ResponseInterface::HTTP_OK)->setJSON(['token' => $token]);
 
         } catch (\Exception $e) {
-            return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => $e->getMessage()]);
+            return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)->setJSON(['message' => 'Internal server error' , 'error' =>$e->getMessage()]);
         }
     }
 }
