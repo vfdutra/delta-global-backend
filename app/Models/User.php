@@ -29,13 +29,15 @@ class User extends Model
 
     // Validation
     protected $validationRules = [
-        'email' => 'required|valid_email',
+        //set email is_unique rule  to be used only for insert
+        'email'    => 'required|valid_email|is_unique[users.email]',
         'password' => 'required',
     ];
     protected $validationMessages = [
         'email' => [
             'required'    => 'Email field is required',
             'valid_email' => 'Email field must be a valid email address',
+            'is_unique'   => 'This email is already registered',
         ],
         'password' => [
             'required' => 'Password field is required'

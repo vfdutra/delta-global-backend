@@ -6,7 +6,6 @@ use App\Controllers\BaseController;
 use CodeIgniter\HTTP\ResponseInterface;
 
 use App\Models\Student;
-use CodeIgniter\CLI\Console;
 use CodeIgniter\HTTP\Response;
 
 class StudentController extends BaseController
@@ -21,28 +20,41 @@ class StudentController extends BaseController
     }
 
     public function create()
-    {
-        if (!$this->validate($this->student->getValidationRules(), $this->student->getValidationMessages())) {
-            return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON($this->validation->getErrors());
-        }
-
+    { 
         $data = [
             'name' => $this->request->getVar('name'),
             'email' => $this->request->getVar('email'),
             'phone' => $this->request->getVar('phone'),
             'address' => $this->request->getVar('address'),
-            'photo' => $this->request->getFile('photo')
         ];
-
-        try {
-            if ($data["photo"]) {
-                $data["photo"] = $this->savePhoto($data["photo"]);
+    
+        $photo = null;
+        if ($imageFile = $this->request->getFile('photo')) {
+            if ($imageFile->isValid() && !$imageFile->hasMoved()) {
+                $photo = $this->savePhoto($imageFile);
             }
-            $this->student->insert($data);
-            $this->student = $this->student->find($this->student->getInsertID());
-            return $this->response->setStatusCode(ResponseInterface::HTTP_CREATED)->setJSON($this->student);
+
+            if (!$photo) {
+                return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => 'Failed to upload photo', 'errors' => $imageFile->getErrorString()]);
+            }
+
+            $data['photo'] = $photo;
+        }
+
+        try {            
+            if (!$this->validate($this->student->getValidationRules(), $this->student->getValidationMessages())) {
+                return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON($this->validation->getErrors());
+            }
+    
+            if (!$this->student->insert($data)) {
+                return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => 'Failed to insert student', 'errors' => $this->student->errors()]);
+            }
+    
+            $student = $this->student->find($this->student->getInsertID());
+
+            return $this->response->setStatusCode(ResponseInterface::HTTP_CREATED)->setJSON($student);
         } catch (\Exception $e) {
-            return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)->setJSON(['message' => 'Internal server error' , 'error' =>$e->getMessage()]);
+            return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)->setJSON(['message' => 'Internal server error', 'error' => $e->getMessage()]);
         }
     }
 
@@ -52,7 +64,7 @@ class StudentController extends BaseController
             $this->student = $this->student->find($id);
             return $this->response->setStatusCode(ResponseInterface::HTTP_OK)->setJSON($this->student);
         } catch (\Exception $e) {
-            return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)->setJSON(['message' => 'Internal server error' , 'error' =>$e->getMessage()]);
+            return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)->setJSON(['message' => 'Internal server error', 'error' => $e->getMessage()]);
         }
     }
 
@@ -62,7 +74,7 @@ class StudentController extends BaseController
             $this->student = $this->student->findAll();
             return $this->response->setJSON($this->student);
         } catch (\Exception $e) {
-            return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)->setJSON(['message' => 'Internal server error' , 'error' =>$e->getMessage()]);
+            return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)->setJSON(['message' => 'Internal server error', 'error' => $e->getMessage()]);
         }
     }
 
@@ -76,12 +88,20 @@ class StudentController extends BaseController
 
             return $this->response->setStatusCode(Response::HTTP_OK)->setJSON(['message' => 'Student deleted successfully']);
         } catch (\Exception $e) {
-            return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)->setJSON(['message' => 'Internal server error' , 'error' =>$e->getMessage()]);
+            return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)->setJSON(['message' => 'Internal server error', 'error' => $e->getMessage()]);
         }
     }
 
     public function update($id)
     {
+         // Retrieve the current validation rules
+         $validationRules = $this->student->validationRules;
+
+         // Substitute {id} with the actual id
+         foreach ($validationRules as $field => $rule) {
+             $validationRules[$field] = str_replace('{id}', $id, $rule);
+         }
+
         $data = [
             'name' => $this->request->getVar('name'),
             'email' => $this->request->getVar('email'),
@@ -93,6 +113,10 @@ class StudentController extends BaseController
         if ($imageFile = $this->request->getFile('photo')) {
             if ($imageFile->isValid() && !$imageFile->hasMoved()) {
                 $newPhotoName = $this->savePhoto($imageFile);
+            }
+
+            if (!$newPhotoName) {
+                return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => 'Failed to upload photo', 'errors' => $imageFile->getErrorString()]);
             }
         }
 
@@ -112,15 +136,20 @@ class StudentController extends BaseController
                 $data['photo'] = $newPhotoName;
             }
 
+            $this->student->setValidationRules($validationRules);
+
             if (!$this->student->update($id, $data)) {
-                return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => 'Failed to update student', 'errors' => $this->student->errors()]);
+                return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON([
+                    'message' => 'Failed to update student',
+                    'errors' => $this->student->errors(),
+                ]);
             }
 
             $updatedStudent = $this->student->find($id);
 
             return $this->response->setStatusCode(ResponseInterface::HTTP_OK)->setJSON($updatedStudent);
         } catch (\Exception $e) {
-            return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)->setJSON(['message' => 'Internal server error' , 'error' =>$e->getMessage()]);
+            return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)->setJSON(['message' => 'Internal server error', 'error' => $e->getMessage()]);
         }
     }
 

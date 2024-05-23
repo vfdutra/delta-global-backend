@@ -30,7 +30,7 @@ class Student extends Model
     // Validation
     protected $validationRules      = [
         'name'    => 'required|min_length[3]|max_length[100]',
-        'email'   => 'required|valid_email',
+        'email'   => 'required|valid_email|is_unique[students.email,id,{id}]',
         'phone'   => 'required|min_length[10]|max_length[15]',
         'address' => 'required|min_length[5]|max_length[255]',
     ];
@@ -43,6 +43,7 @@ class Student extends Model
         'email'   => [
             'required'    => 'Email field is required',
             'valid_email' => 'Email field must be a valid email address',
+            'is_unique'   => 'This email is already registered',
         ],
         'phone'   => [
             'required'    => 'Phone field is required',
@@ -51,9 +52,9 @@ class Student extends Model
         ],
         'address' => [
             'required'    => 'Address field is required',
-            'min_length'  => 'Address field must be at least 10 characters in length',
+            'min_length'  => 'Address field must be at least 5 characters in length',
             'max_length'  => 'Address field must not exceed 255 characters in length',
-        ],
+        ]     
     ];
     protected $skipValidation       = false;
     protected $cleanValidationRules = true;
