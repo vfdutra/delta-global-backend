@@ -19,7 +19,6 @@ $routes->group('', ['filter' => 'jwt'], function ($routes) {
 });
 
 $routes->group('users', static function ($routes) {
-  $routes->get('', 'UserController::showAll');
   $routes->post('', 'UserController::create');
 });
 
