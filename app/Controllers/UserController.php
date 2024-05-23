@@ -6,16 +6,19 @@ use App\Controllers\BaseController;
 use CodeIgniter\HTTP\ResponseInterface;
 
 use App\Models\User;
+use App\Services\JwtService;
 
 class UserController extends BaseController
 {
     private $validation;
     private $user;
+    private $jwtService;
 
     public function __construct()
     {
         $this->user = new User();
         $this->validation = \Config\Services::validation();
+        $this->jwtService = new JwtService();
     }
 
     public function create()
@@ -28,10 +31,11 @@ class UserController extends BaseController
 
         try {
             $data->password = password_hash($data->password, PASSWORD_DEFAULT);
-            $this->user->insert($data);
-            $id = $this->user->getInsertID();
-            $this->user = $this->user->find($id);
-            return $this->response->setStatusCode(ResponseInterface::HTTP_CREATED)->setJSON($this->user);
+            if(!$this->user->insert($data)){
+                return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => 'Failed to create user']);
+            }   
+            $token = $this->jwtService->generateToken(['email' => $data->email]);
+            return $this->response->setStatusCode(ResponseInterface::HTTP_CREATED)->setJSON(['token' => $token]);         
         } catch (\Exception $e) {
             return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => $e->getMessage()]);
         }

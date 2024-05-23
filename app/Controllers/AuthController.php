@@ -4,9 +4,10 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use CodeIgniter\HTTP\ResponseInterface;
+use CodeIgniter\API\ResponseTrait;
+
 use App\Models\User;
 use App\Services\JwtService;
-use CodeIgniter\API\ResponseTrait;
 
 class AuthController extends BaseController
 {
@@ -29,7 +30,7 @@ class AuthController extends BaseController
             $userFound = $this->user->where('email', $data->email)->first();
 
             if (!$userFound) {
-                return $this->response->setStatusCode(ResponseInterface::HTTP_UNAUTHORIZED)->setJSON(['message' => 'User not found']);
+                return $this->response->setStatusCode(ResponseInterface::HTTP_NOT_FOUND)->setJSON(['message' => 'User not found']);
             }
 
             if (!password_verify($data->password, $userFound->password)) {

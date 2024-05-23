@@ -30,9 +30,9 @@ class Student extends Model
     // Validation
     protected $validationRules      = [
         'name'    => 'required|min_length[3]|max_length[100]',
-        'email'   => 'required|valid_email|is_unique[students.email]',
+        'email'   => 'required|valid_email',
         'phone'   => 'required|min_length[10]|max_length[15]',
-        'address' => 'required|min_length[10]|max_length[255]',
+        'address' => 'required|min_length[5]|max_length[255]',
     ];
     protected $validationMessages   = [
         'name'    => [
@@ -43,7 +43,6 @@ class Student extends Model
         'email'   => [
             'required'    => 'Email field is required',
             'valid_email' => 'Email field must be a valid email address',
-            'is_unique'   => 'Email field must be unique',
         ],
         'phone'   => [
             'required'    => 'Phone field is required',
@@ -68,5 +67,5 @@ class Student extends Model
     protected $beforeFind     = [];
     protected $afterFind      = [];
     protected $beforeDelete   = [];
-    protected $afterDelete    = [];   
+    protected $afterDelete    = [];
 }

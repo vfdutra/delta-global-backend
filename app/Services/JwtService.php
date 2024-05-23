@@ -7,12 +7,7 @@ use Firebase\JWT\Key;
 
 class JwtService
 {
-    protected $secret;
-
-    public function __construct()
-    {
-        $this->secret = 'ocf2fzlC17jpFeTovk72dhtSOc54USsXEar5QZ4LmEsOCzjHNN1XuVkkJfN/2aYpG10EMcrZzrv0ilaRSma1Hg==';
-    }
+    protected $secret = 'ocf2fzlC17jpFeTovk72dhtSOc54USsXEar5QZ4LmEsOCzjHNN1XuVkkJfN/2aYpG10EMcrZzrv0ilaRSma1Hg==';
 
     public function generateToken($payload)
     {

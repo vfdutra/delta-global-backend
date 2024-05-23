@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use CodeIgniter\HTTP\ResponseInterface;
 
 use App\Models\Student;
+use CodeIgniter\CLI\Console;
 use CodeIgniter\HTTP\Response;
 
 class StudentController extends BaseController
@@ -67,7 +68,6 @@ class StudentController extends BaseController
 
     public function delete($id)
     {
-        $this->student = new Student();
         try {
             $this->student->delete($id);
             if ($this->student->db->affectedRows() === 0) {
@@ -87,8 +87,14 @@ class StudentController extends BaseController
             'email' => $this->request->getVar('email'),
             'phone' => $this->request->getVar('phone'),
             'address' => $this->request->getVar('address'),
-            'photo' => $this->request->getFile('photo')
         ];
+
+        $newPhotoName = null;
+        if ($imageFile = $this->request->getFile('photo')) {
+            if ($imageFile->isValid() && !$imageFile->hasMoved()) {
+                $newPhotoName = $this->savePhoto($imageFile);
+            }
+        }
 
         try {
             $studentData = $this->student->find($id);
@@ -97,15 +103,17 @@ class StudentController extends BaseController
                 return $this->response->setStatusCode(ResponseInterface::HTTP_NOT_FOUND)->setJSON(['message' => 'Student not found']);
             }
 
-            if (!empty($studentData['photo']) && $data['photo']) {
+            if (!empty($studentData['photo']) && $newPhotoName) {
                 if (!$this->deletePhoto($studentData['photo'])) {
-                    return $this->response->setStatusCode(ResponseInterface::HTTP_NOT_FOUND)->setJSON(['message' => 'Failed to delete photo']);
+                    return $this->response->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)->setJSON(['message' => 'Failed to delete old photo']);
                 }
-                $data['photo'] = $this->savePhoto($data['photo']);
+                $data['photo'] = $newPhotoName;
+            } elseif ($newPhotoName) {
+                $data['photo'] = $newPhotoName;
             }
 
-            if(!$this->student->update($id, $data)){
-                return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => 'Failed to update student']);
+            if (!$this->student->update($id, $data)) {
+                return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => 'Failed to update student', 'errors' => $this->student->errors()]);
             }
 
             $updatedStudent = $this->student->find($id);
@@ -126,5 +134,22 @@ class StudentController extends BaseController
     public function deletePhoto($photo)
     {
         return unlink(WRITEPATH . 'uploads/' . $photo);
+    }
+
+    public function getPhoto($id)
+    {
+        $student = $this->student->find($id);
+        if (!$student) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_NOT_FOUND)->setJSON(['message' => 'Student not found']);
+        }
+
+        $photo = $student['photo'];
+        $path = WRITEPATH . 'uploads/' . $photo;
+
+        if (!file_exists($path)) {
+            return $this->response->setStatusCode(ResponseInterface::HTTP_NOT_FOUND)->setJSON(['message' => 'Photo not found']);
+        }
+
+        return $this->response->setContentType('image/jpeg')->setBody(file_get_contents($path));
     }
 }
