@@ -20,14 +20,14 @@ class StudentController extends BaseController
     }
 
     public function create()
-    { 
+    {
         $data = [
             'name' => $this->request->getVar('name'),
             'email' => $this->request->getVar('email'),
             'phone' => $this->request->getVar('phone'),
             'address' => $this->request->getVar('address'),
         ];
-    
+
         $photo = null;
         if ($imageFile = $this->request->getFile('photo')) {
             if ($imageFile->isValid() && !$imageFile->hasMoved()) {
@@ -35,21 +35,43 @@ class StudentController extends BaseController
             }
 
             if (!$photo) {
-                return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => 'Failed to upload photo', 'errors' => $imageFile->getErrorString()]);
+                return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => ['photo' => $imageFile->getErrorString()]]);
             }
-
             $data['photo'] = $photo;
+        } else {
+            $existingRules = $this->student->getValidationRules();
+            $existingMessages = $this->student->getValidationMessages();
+
+            $photoRules = [
+                'photo' => [
+                    'label' => 'Photo',
+                    'rules' => 'uploaded[photo]|max_size[photo,1024]|is_image[photo]',
+                ],
+            ];
+            $photoMessages = [
+                'photo' => [
+                    'uploaded' => 'The photo field is required',
+                    'max_size' => 'The photo field exceeds the maximum allowed size',
+                    'is_image' => 'The photo field must be an image',
+                ],
+            ];
+
+            $validationRules = array_merge($existingRules, $photoRules);
+            $validationMessages = array_merge($existingMessages, $photoMessages);
+
+            $this->student->setValidationRules($validationRules);
+            $this->student->setValidationMessages($validationMessages);
         }
 
-        try {            
+        try {
             if (!$this->validate($this->student->getValidationRules(), $this->student->getValidationMessages())) {
-                return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON($this->validation->getErrors());
+                return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['errors' => $this->validation->getErrors()]);
             }
-    
+
             if (!$this->student->insert($data)) {
                 return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => 'Failed to insert student', 'errors' => $this->student->errors()]);
             }
-    
+
             $student = $this->student->find($this->student->getInsertID());
 
             return $this->response->setStatusCode(ResponseInterface::HTTP_CREATED)->setJSON($student);
@@ -94,13 +116,11 @@ class StudentController extends BaseController
 
     public function update($id)
     {
-         // Retrieve the current validation rules
-         $validationRules = $this->student->validationRules;
+        $validationRules = $this->student->validationRules;
 
-         // Substitute {id} with the actual id
-         foreach ($validationRules as $field => $rule) {
-             $validationRules[$field] = str_replace('{id}', $id, $rule);
-         }
+        foreach ($validationRules as $field => $rule) {
+            $validationRules[$field] = str_replace('{id}', $id, $rule);
+        }
 
         $data = [
             'name' => $this->request->getVar('name'),
@@ -116,7 +136,11 @@ class StudentController extends BaseController
             }
 
             if (!$newPhotoName) {
-                return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => 'Failed to upload photo', 'errors' => $imageFile->getErrorString()]);
+                $error = $imageFile->getErrorString();
+                if (strpos($error, 'upload_max_filesize ini directive') !== false) {
+                    return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['photo' => 'The uploaded file exceeds the maximum allowed size']);
+                }
+                return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['photo' => $imageFile->getErrorString()]);
             }
         }
 

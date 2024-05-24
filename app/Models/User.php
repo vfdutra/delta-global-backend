@@ -29,7 +29,6 @@ class User extends Model
 
     // Validation
     protected $validationRules = [
-        //set email is_unique rule  to be used only for insert
         'email'    => 'required|valid_email|is_unique[users.email]',
         'password' => 'required',
     ];
