@@ -27,6 +27,10 @@ Execute o projeto com:
 
 `php spark serve`
 
+# Testes
+
+Para facilitar os testes foi adicionar a raiz do projeto um arquivo contendo as rotas no insomnia
+
 ## Versões
 
 - PHP 8.1^
