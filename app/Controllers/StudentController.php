@@ -35,7 +35,10 @@ class StudentController extends BaseController
             }
 
             if (!$photo) {
-                return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['message' => ['photo' => $imageFile->getErrorString()]]);
+                $error = $imageFile->getErrorString();
+                if (strpos($error, 'upload_max_filesize ini directive') !== false) {
+                    return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['errors' => ['photo' => 'The uploaded file exceeds the maximum allowed size']]);
+                }
             }
             $data['photo'] = $photo;
         } else {
@@ -138,7 +141,7 @@ class StudentController extends BaseController
             if (!$newPhotoName) {
                 $error = $imageFile->getErrorString();
                 if (strpos($error, 'upload_max_filesize ini directive') !== false) {
-                    return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['photo' => 'The uploaded file exceeds the maximum allowed size']);
+                    return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['errors' => ['photo' => 'The uploaded file exceeds the maximum allowed size']]);
                 }
                 return $this->response->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST)->setJSON(['photo' => $imageFile->getErrorString()]);
             }
