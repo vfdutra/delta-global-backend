@@ -26,3 +26,8 @@ Após configurar as váriaveis do banco de dados no arquivo .env execute as migr
 Execute o projeto com:
 
 `php spark serve`
+
+## Versões
+
+- PHP 8.1^
+- CodeIgniter 4
